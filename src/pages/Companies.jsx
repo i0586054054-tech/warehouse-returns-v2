@@ -102,11 +102,19 @@ export default function Companies() {
     }
   }
 
-  const filtered = companies.filter(
-    (c) =>
-      c.name.includes(search) ||
-      (c.agent_name && c.agent_name.includes(search))
-  );
+  const filtered = companies
+    .filter(
+      (c) =>
+        c.name.includes(search) ||
+        (c.agent_name && c.agent_name.includes(search))
+    )
+    .sort((a, b) => {
+      const aCount = a.barcodes?.[0]?.count || 0;
+      const bCount = b.barcodes?.[0]?.count || 0;
+      if (aCount > 0 && bCount === 0) return -1;
+      if (aCount === 0 && bCount > 0) return 1;
+      return a.name.localeCompare(b.name);
+    });
 
   const dayLabel = (dayIndex) => {
     if (dayIndex == null) return '—';
@@ -141,7 +149,7 @@ export default function Companies() {
         <div className="empty-state"><p>לא נמצאו חברות</p></div>
       ) : (
         filtered.map((company) => (
-          <div className="company-card" key={company.id}>
+          <div className="company-card" key={company.id} style={(company.barcodes?.[0]?.count || 0) > 0 ? { background: '#fff7ed' } : undefined}>
             <div className="company-info">
               <h3>{company.name}</h3>
               <p>

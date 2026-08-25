@@ -7,6 +7,7 @@ export default function ScanBarcode() {
   const [barcode, setBarcode] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [companyId, setCompanyId] = useState('');
+  const [productName, setProductName] = useState('');
   const [companies, setCompanies] = useState([]);
   const [existingItem, setExistingItem] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -47,11 +48,13 @@ export default function ScanBarcode() {
       setExistingItem(data);
       setQuantity(data.quantity);
       setCompanyId(data.company_id || '');
+      setProductName(data.product_name || '');
       toast('ברקוד קיים — עדכן כמות', { icon: '📦' });
     } else {
       setExistingItem(null);
       setQuantity(1);
       setCompanyId('');
+      setProductName('');
     }
     setIsSearching(false);
   }
@@ -127,18 +130,22 @@ export default function ScanBarcode() {
     try {
       if (existingItem) {
         // עדכון כמות של ברקוד קיים
+        const updateData = { quantity, company_id: companyId };
+        if (productName.trim()) updateData.product_name = productName.trim();
         await supabase
           .from('barcodes')
-          .update({ quantity, company_id: companyId })
+          .update(updateData)
           .eq('id', existingItem.id);
         toast.success('הכמות עודכנה');
       } else {
         // הוספת ברקוד חדש
-        const { error } = await supabase.from('barcodes').insert({
+        const insertData = {
           barcode: barcode.trim(),
           quantity,
           company_id: companyId,
-        });
+        };
+        if (productName.trim()) insertData.product_name = productName.trim();
+        const { error } = await supabase.from('barcodes').insert(insertData);
 
         if (error) {
           if (error.code === '23505') {
@@ -158,6 +165,7 @@ export default function ScanBarcode() {
       setBarcode('');
       setQuantity(1);
       setCompanyId('');
+      setProductName('');
       setExistingItem(null);
       inputRef.current?.focus();
     } catch (err) {
@@ -257,8 +265,21 @@ export default function ScanBarcode() {
             >
               ברקוד קיים · חברה: {existingItem.companies?.name || 'לא ידועה'} · כמות נוכחית:{' '}
               {existingItem.quantity}
+              {existingItem.product_name && ` · מוצר: ${existingItem.product_name}`}
             </div>
           )}
+
+          {/* שם מוצר */}
+          <div className="form-group">
+            <label className="form-label">שם מוצר (אופציונלי)</label>
+            <input
+              className="form-input"
+              type="text"
+              placeholder="הזן שם מוצר..."
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+            />
+          </div>
 
           {/* כמות */}
           <div className="form-group">

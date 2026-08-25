@@ -35,6 +35,10 @@
                   "company_name": {
                     "type": "string",
                     "description": "Company/supplier name in Hebrew"
+                  },
+                  "product_name": {
+                    "type": "string",
+                    "description": "Product name (optional)"
                   }
                 }
               }

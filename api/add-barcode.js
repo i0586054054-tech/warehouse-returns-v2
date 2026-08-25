@@ -33,7 +33,7 @@ export default async function handler(req, res) {
 
   try {
     const supabase = getSupabase();
-    const { barcode, quantity, company_name } = req.body;
+    const { barcode, quantity, company_name, product_name } = req.body;
 
     if (!barcode) {
       return res.status(400).json({ error: 'barcode is required' });
@@ -74,6 +74,7 @@ export default async function handler(req, res) {
       const newQty = quantity || existing.quantity;
       const updateData = { quantity: newQty };
       if (companyId) updateData.company_id = companyId;
+      if (product_name) updateData.product_name = product_name.trim();
 
       await supabase.from('barcodes').update(updateData).eq('id', existing.id);
       result = {
@@ -84,11 +85,13 @@ export default async function handler(req, res) {
       };
     } else {
       // Insert new barcode
-      const { error } = await supabase.from('barcodes').insert({
+      const insertData = {
         barcode: barcode.trim(),
         quantity: quantity || 1,
         company_id: companyId,
-      });
+      };
+      if (product_name) insertData.product_name = product_name.trim();
+      const { error } = await supabase.from('barcodes').insert(insertData);
 
       if (error) {
         return res.status(400).json({ error: error.message });
