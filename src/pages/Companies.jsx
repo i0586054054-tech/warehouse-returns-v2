@@ -79,10 +79,15 @@ export default function Companies() {
         toast.success('חברה נוספה');
       }
       setModalOpen(false);
+      triggerSync();
       loadCompanies();
     } catch (err) {
       toast.error('שגיאה בשמירה');
     }
+  }
+
+  function triggerSync() {
+    fetch('/api/sync-sheets', { method: 'POST' }).catch(() => {});
   }
 
   async function handleDelete(company) {
@@ -90,6 +95,7 @@ export default function Companies() {
     try {
       await supabase.from('companies').delete().eq('id', company.id);
       toast.success('חברה נמחקה');
+      triggerSync();
       loadCompanies();
     } catch (err) {
       toast.error('שגיאה במחיקה');

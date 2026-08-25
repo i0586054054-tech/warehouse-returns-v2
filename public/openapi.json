@@ -1,0 +1,100 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Warehouse Returns API",
+    "description": "API for managing warehouse barcode returns",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://warehouse-returns-v2.vercel.app"
+    }
+  ],
+  "paths": {
+    "/api/add-barcode": {
+      "post": {
+        "operationId": "addBarcode",
+        "summary": "Add or update a barcode in the system",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["barcode"],
+                "properties": {
+                  "barcode": {
+                    "type": "string",
+                    "description": "The barcode number"
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "description": "Quantity of items (default 1)",
+                    "default": 1
+                  },
+                  "company_name": {
+                    "type": "string",
+                    "description": "Company/supplier name in Hebrew"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Barcode added or updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "action": { "type": "string", "enum": ["created", "updated"] },
+                    "barcode": { "type": "string" },
+                    "quantity": { "type": "integer" },
+                    "company": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getBarcodes",
+        "summary": "Get all open barcodes",
+        "responses": {
+          "200": {
+            "description": "List of all open barcodes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "barcodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "barcode": { "type": "string" },
+                          "quantity": { "type": "integer" },
+                          "companies": {
+                            "type": "object",
+                            "properties": {
+                              "name": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
