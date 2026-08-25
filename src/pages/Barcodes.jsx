@@ -117,6 +117,7 @@ export default function Barcodes() {
               <thead>
                 <tr>
                   <th>ברקוד</th>
+                  <th>מוצר</th>
                   <th>כמות</th>
                   <th>חברה</th>
                   <th>פעולות</th>
@@ -126,6 +127,7 @@ export default function Barcodes() {
                 {filtered.map((item) => (
                   <tr key={item.id}>
                     <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>{item.barcode}</td>
+                    <td>{item.product_name || '—'}</td>
                     <td>{item.quantity}</td>
                     <td>{item.companies?.name || '—'}</td>
                     <td>

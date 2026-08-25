@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { getFormattedDate, getNextWeekDate } from '../lib/helpers';
-import { UserCheck, ArrowLeftRight, Package, Clock, AlertCircle } from 'lucide-react';
+import { UserCheck, ArrowLeftRight, Package, Clock, AlertCircle, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Dashboard() {
@@ -50,6 +50,15 @@ export default function Dashboard() {
         (c) => !handledAgentIds.includes(c.id)
       );
 
+      // מיון: חברות עם ברקודים קודם, אחרי כך ללא
+      activeAgentCompanies.sort((a, b) => {
+        const aCount = a.barcodes?.[0]?.count || 0;
+        const bCount = b.barcodes?.[0]?.count || 0;
+        if (aCount > 0 && bCount === 0) return -1;
+        if (aCount === 0 && bCount > 0) return 1;
+        return 0;
+      });
+
       // --- חברות ללא סוכן שיום האיסוף שלהן היום ---
       const { data: withoutAgent } = await supabase
         .from('companies')
@@ -78,6 +87,15 @@ export default function Dashboard() {
       const activeNoAgentCompanies = filteredWithoutAgent.filter(
         (c) => !handledReturnIds.includes(c.id)
       );
+
+      // מיון: חברות עם ברקודים קודם, אחרי כך ללא
+      activeNoAgentCompanies.sort((a, b) => {
+        const aCount = a.barcodes?.[0]?.count || 0;
+        const bCount = b.barcodes?.[0]?.count || 0;
+        if (aCount > 0 && bCount === 0) return -1;
+        if (aCount === 0 && bCount > 0) return 1;
+        return 0;
+      });
 
       setAgentCompanies(activeAgentCompanies);
       setNoAgentCompanies(activeNoAgentCompanies);
@@ -170,6 +188,36 @@ export default function Dashboard() {
     }
   }
 
+  async function handleReturnedAndDelete(company) {
+    const count = barcodeCount(company);
+    if (!confirm(`לסמן שהמוצרים של ${company.name} הוחזרו ולמחוק? (${count} ברקודים יימחקו)`)) return;
+
+    try {
+      // מחיקת כל הברקודים של החברה
+      await supabase.from('barcodes').delete().eq('company_id', company.id);
+
+      // רישום בלוג
+      await supabase.from('returns_log').insert({
+        company_id: company.id,
+        status: 'הוחזר',
+      });
+
+      // מנקה override אם היה
+      await supabase
+        .from('companies')
+        .update({ next_visit_override: null })
+        .eq('id', company.id);
+
+      toast.success(`המוצרים של ${company.name} הוחזרו ונמחקו`);
+
+      // סנכרון ל-Google Sheets
+      triggerSync();
+      loadDashboard();
+    } catch (err) {
+      toast.error('שגיאה בעדכון');
+    }
+  }
+
   async function handleNotCollected(company) {
     if (!confirm(`${company.name} לא נאסף — לדחות לשבוע הבא?`)) return;
 
@@ -191,6 +239,44 @@ export default function Dashboard() {
       loadDashboard();
     } catch (err) {
       toast.error('שגיאה בעדכון');
+    }
+  }
+
+  async function exportCSV(company) {
+    try {
+      const { data: barcodes, error } = await supabase
+        .from('barcodes')
+        .select('barcode, quantity')
+        .eq('company_id', company.id);
+
+      if (error) throw error;
+
+      if (!barcodes || barcodes.length === 0) {
+        toast.error(`אין ברקודים לייצוא עבור ${company.name}`);
+        return;
+      }
+
+      // יצירת CSV ללא כותרות — רק barcode,quantity
+      const csvRows = barcodes.map((b) => `${b.barcode},${b.quantity ?? 1}`);
+      const csvContent = csvRows.join('\n');
+
+      // הוספת BOM לתמיכה בעברית
+      const BOM = '\uFEFF';
+      const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `החזרות_${company.name}_${todayDateStr}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success(`קובץ CSV יוצא עבור ${company.name}`);
+    } catch (err) {
+      console.error(err);
+      toast.error('שגיאה בייצוא CSV');
     }
   }
 
@@ -236,33 +322,59 @@ export default function Dashboard() {
             </div>
           </div>
         ) : (
-          agentCompanies.map((company) => (
-            <div className="company-card" key={company.id}>
-              <div className="company-info">
-                <h3>{company.name}</h3>
-                <p>
-                  סוכן: {company.agent_name || 'לא צוין'}
-                  {company.agent_phone && ` · ${company.agent_phone}`}
-                  {' · '}
-                  <strong>{barcodeCount(company)}</strong> ברקודים
-                </p>
+          agentCompanies.map((company) => {
+            const count = barcodeCount(company);
+            const hasBarcodes = count > 0;
+
+            return (
+              <div className="company-card" key={company.id}>
+                <div className="company-info">
+                  <h3>{company.name}</h3>
+                  <p>
+                    סוכן: {company.agent_name || 'לא צוין'}
+                    {company.agent_phone && ` · ${company.agent_phone}`}
+                    {' · '}
+                    <strong>{count}</strong> ברקודים
+                  </p>
+                  {!hasBarcodes && (
+                    <p style={{ color: 'var(--warning)', fontSize: 12 }}>
+                      <AlertCircle size={12} style={{ display: 'inline', verticalAlign: 'middle' }} />{' '}
+                      מגיע היום — אין חזרות פתוחות
+                    </p>
+                  )}
+                </div>
+                {hasBarcodes && (
+                  <div className="action-row">
+                    <button
+                      className="btn btn-success btn-sm"
+                      onClick={() => handleAgentSigned(company)}
+                    >
+                      הוחתם
+                    </button>
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => handlePostponeAgent(company)}
+                    >
+                      דחה שבוע
+                    </button>
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => exportCSV(company)}
+                    >
+                      <Download size={14} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
+                      ייצא CSV
+                    </button>
+                    <button
+                      className="btn btn-danger btn-sm"
+                      onClick={() => handleReturnedAndDelete(company)}
+                    >
+                      הוחזר ומחק
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="action-row">
-                <button
-                  className="btn btn-success btn-sm"
-                  onClick={() => handleAgentSigned(company)}
-                >
-                  הוחתם
-                </button>
-                <button
-                  className="btn btn-outline btn-sm"
-                  onClick={() => handlePostponeAgent(company)}
-                >
-                  דחה שבוע
-                </button>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -281,36 +393,50 @@ export default function Dashboard() {
             </div>
           </div>
         ) : (
-          noAgentCompanies.map((company) => (
-            <div className="company-card" key={company.id}>
-              <div className="company-info">
-                <h3>{company.name}</h3>
-                <p>
-                  <strong>{barcodeCount(company)}</strong> ברקודים להחזרה
-                </p>
-                {barcodeCount(company) === 0 && (
-                  <p style={{ color: 'var(--warning)', fontSize: 12 }}>
-                    <AlertCircle size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> אין ברקודים פתוחים
+          noAgentCompanies.map((company) => {
+            const count = barcodeCount(company);
+            const hasBarcodes = count > 0;
+
+            return (
+              <div className="company-card" key={company.id}>
+                <div className="company-info">
+                  <h3>{company.name}</h3>
+                  <p>
+                    <strong>{count}</strong> ברקודים להחזרה
                   </p>
+                  {!hasBarcodes && (
+                    <p style={{ color: 'var(--warning)', fontSize: 12 }}>
+                      <AlertCircle size={12} style={{ display: 'inline', verticalAlign: 'middle' }} />{' '}
+                      אין ברקודים פתוחים
+                    </p>
+                  )}
+                </div>
+                {hasBarcodes && (
+                  <div className="action-row">
+                    <button
+                      className="btn btn-success btn-sm"
+                      onClick={() => handleReturnedToCompany(company)}
+                    >
+                      הוחזר
+                    </button>
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => handleNotCollected(company)}
+                    >
+                      לא נאסף
+                    </button>
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => exportCSV(company)}
+                    >
+                      <Download size={14} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
+                      ייצא CSV
+                    </button>
+                  </div>
                 )}
               </div>
-              <div className="action-row">
-                <button
-                  className="btn btn-success btn-sm"
-                  onClick={() => handleReturnedToCompany(company)}
-                  disabled={barcodeCount(company) === 0}
-                >
-                  הוחזר
-                </button>
-                <button
-                  className="btn btn-outline btn-sm"
-                  onClick={() => handleNotCollected(company)}
-                >
-                  לא נאסף
-                </button>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
