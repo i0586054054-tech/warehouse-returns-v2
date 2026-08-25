@@ -127,7 +127,7 @@ export default function ExportData() {
             <div
               style={{
                 padding: '12px 16px',
-                borderBottom: '1px solid var(--gray-200)',
+                borderBottom: '1px solid var(--border-color)',
               }}
             >
               <strong>{company.name}</strong> — {company.count} ברקודים

@@ -149,7 +149,7 @@ export default function Companies() {
         <div className="empty-state"><p>לא נמצאו חברות</p></div>
       ) : (
         filtered.map((company) => (
-          <div className="company-card" key={company.id} style={(company.barcodes?.[0]?.count || 0) > 0 ? { background: '#fff7ed' } : undefined}>
+          <div className="company-card" key={company.id} style={(company.barcodes?.[0]?.count || 0) > 0 ? { background: 'rgba(255, 107, 53, 0.1)', borderColor: 'rgba(255, 107, 53, 0.3)' } : undefined}>
             <div className="company-info">
               <h3>{company.name}</h3>
               <p>

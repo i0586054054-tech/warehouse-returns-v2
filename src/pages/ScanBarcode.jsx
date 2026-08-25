@@ -257,7 +257,7 @@ export default function ScanBarcode() {
             <div
               style={{
                 padding: '8px 12px',
-                background: '#fef3c7',
+                background: 'rgba(245, 158, 11, 0.1)',
                 borderRadius: 8,
                 marginBottom: 14,
                 fontSize: 14,
