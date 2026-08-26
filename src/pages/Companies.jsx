@@ -127,7 +127,7 @@ export default function Companies() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h1 className="page-title">חברות</h1>
           <button className="btn btn-primary btn-sm" onClick={openAdd}>
-            <Plus size={28} /> הוסף
+            <Plus size={16} /> הוסף
           </button>
         </div>
         <p className="page-subtitle">{companies.length} חברות במערכת</p>
@@ -162,10 +162,10 @@ export default function Companies() {
             </div>
             <div className="action-row">
               <button className="btn btn-outline btn-sm" onClick={() => openEdit(company)}>
-                <Pencil size={28} />
+                <Pencil size={16} />
               </button>
               <button className="btn btn-danger btn-sm" onClick={() => handleDelete(company)}>
-                <Trash2 size={28} />
+                <Trash2 size={16} />
               </button>
             </div>
           </div>

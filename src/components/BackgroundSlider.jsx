@@ -46,7 +46,7 @@ export default function BackgroundSlider() {
           }}
           title={locked ? 'שחרר נעילה' : paused ? 'המשך' : 'עצור'}
         >
-          {locked ? <Unlock size={18} /> : paused ? <Play size={18} /> : <Pause size={18} />}
+          {locked ? <Unlock size={14} /> : paused ? <Play size={14} /> : <Pause size={14} />}
         </button>
         <button
           className="bg-slider-btn"
@@ -56,7 +56,7 @@ export default function BackgroundSlider() {
           }}
           title={locked ? 'בטל קיבוע' : 'קבע תמונה נוכחית'}
         >
-          <Lock size={18} />
+          <Lock size={14} />
         </button>
         <div className="bg-slider-dots">
           {Array.from({ length: SLIDE_COUNT }, (_, i) => (

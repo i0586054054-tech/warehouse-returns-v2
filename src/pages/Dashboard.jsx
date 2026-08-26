@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { getFormattedDate, getNextWeekDate } from '../lib/helpers';
 import { UserCheck, ArrowLeftRight, Package, Clock, AlertCircle, Download } from 'lucide-react';
+import BackgroundSlider from '../components/BackgroundSlider';
 import toast from 'react-hot-toast';
 
 export default function Dashboard() {
@@ -333,9 +334,12 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="dashboard-greeting">
-        <h1>{getGreeting()}, מחסנאי 👋</h1>
-        <p>{getFormattedDate()}</p>
+      <div className="greeting-slider-wrapper">
+        <BackgroundSlider />
+        <div className="dashboard-greeting">
+          <h1>{getGreeting()}, מחסנאי 👋</h1>
+          <p>{getFormattedDate()}</p>
+        </div>
       </div>
 
       {/* סטטיסטיקות */}
@@ -357,14 +361,14 @@ export default function Dashboard() {
       {/* סוכנים שמגיעים היום */}
       <div className="section">
         <div className="section-title">
-          <UserCheck size={36} />
+          <UserCheck size={20} />
           סוכנים שמגיעים היום
         </div>
 
         {agentCompanies.length === 0 ? (
           <div className="card">
             <div className="empty-state">
-              <Clock size={64} />
+              <Clock size={36} />
               <p>אין סוכנים מתוכננים להיום</p>
             </div>
           </div>
@@ -384,8 +388,8 @@ export default function Dashboard() {
                     <strong>{count}</strong> ברקודים
                   </p>
                   {!hasBarcodes && (
-                    <p style={{ color: 'var(--warning)', fontSize: 30 }}>
-                      <AlertCircle size={28} style={{ display: 'inline', verticalAlign: 'middle' }} />{' '}
+                    <p style={{ color: 'var(--warning)', fontSize: 15 }}>
+                      <AlertCircle size={16} style={{ display: 'inline', verticalAlign: 'middle' }} />{' '}
                       מגיע היום — אין חזרות פתוחות
                     </p>
                   )}
@@ -408,7 +412,7 @@ export default function Dashboard() {
                       className="btn btn-outline btn-sm"
                       onClick={() => exportCSV(company)}
                     >
-                      <Download size={28} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
+                      <Download size={16} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
                       ייצא CSV
                     </button>
                     <button
@@ -428,14 +432,14 @@ export default function Dashboard() {
       {/* החזרות ללא סוכן */}
       <div className="section">
         <div className="section-title">
-          <Package size={36} />
+          <Package size={20} />
           החזרות היום — עברו סוכן
         </div>
 
         {noAgentCompanies.length === 0 ? (
           <div className="card">
             <div className="empty-state">
-              <ArrowLeftRight size={64} />
+              <ArrowLeftRight size={36} />
               <p>אין החזרות מתוכננות להיום</p>
             </div>
           </div>
@@ -452,8 +456,8 @@ export default function Dashboard() {
                     <strong>{count}</strong> ברקודים להחזרה
                   </p>
                   {!hasBarcodes && (
-                    <p style={{ color: 'var(--warning)', fontSize: 30 }}>
-                      <AlertCircle size={28} style={{ display: 'inline', verticalAlign: 'middle' }} />{' '}
+                    <p style={{ color: 'var(--warning)', fontSize: 15 }}>
+                      <AlertCircle size={16} style={{ display: 'inline', verticalAlign: 'middle' }} />{' '}
                       אין ברקודים פתוחים
                     </p>
                   )}
@@ -476,7 +480,7 @@ export default function Dashboard() {
                       className="btn btn-outline btn-sm"
                       onClick={() => exportCSV(company)}
                     >
-                      <Download size={28} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
+                      <Download size={16} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
                       ייצא CSV
                     </button>
                   </div>

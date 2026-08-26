@@ -209,7 +209,7 @@ export default function ScanBarcode() {
               justifyContent: 'center',
             }}
           >
-            <X size={32} />
+            <X size={18} />
           </button>
         </div>
       )}
@@ -238,7 +238,7 @@ export default function ScanBarcode() {
                 disabled={isSearching}
                 title="חפש ברקוד"
               >
-                <ScanIcon size={32} />
+                <ScanIcon size={18} />
               </button>
               <button
                 type="button"
@@ -247,7 +247,7 @@ export default function ScanBarcode() {
                 disabled={cameraActive}
                 title="סרוק מהמצלמה"
               >
-                <Camera size={32} />
+                <Camera size={18} />
               </button>
             </div>
           </div>
@@ -260,7 +260,7 @@ export default function ScanBarcode() {
                 background: 'rgba(245, 158, 11, 0.1)',
                 borderRadius: 8,
                 marginBottom: 14,
-                fontSize: 34,
+                fontSize: 17,
               }}
             >
               ברקוד קיים · חברה: {existingItem.companies?.name || 'לא ידועה'} · כמות נוכחית:{' '}
@@ -333,11 +333,11 @@ export default function ScanBarcode() {
           <button type="submit" className="btn btn-primary btn-block">
             {existingItem ? (
               <>
-                <Check size={32} /> עדכן כמות
+                <Check size={18} /> עדכן כמות
               </>
             ) : (
               <>
-                <Plus size={32} /> הוסף ברקוד
+                <Plus size={18} /> הוסף ברקוד
               </>
             )}
           </button>
