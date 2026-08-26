@@ -624,6 +624,61 @@ tr:hover { background: var(--bg-card-hover); }
   font-weight: 900;
 }
 
+/* ===== Compact agent rows (no barcodes) ===== */
+.compact-agents {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.compact-agent-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.2s;
+}
+.compact-agent-row:last-child {
+  border-bottom: none;
+}
+.compact-agent-row:hover {
+  background: var(--bg-card-hover);
+}
+.compact-agent-name {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text-primary);
+}
+.compact-agent-info {
+  flex: 1;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+.compact-agent-dismiss {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+  flex-shrink: 0;
+}
+.compact-agent-dismiss:hover {
+  background: var(--danger-glow);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 /* ===== Company card ===== */
 .company-card {
   background: var(--bg-card);

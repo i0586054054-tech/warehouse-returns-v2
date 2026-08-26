@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { getFormattedDate, getNextWeekDate } from '../lib/helpers';
-import { UserCheck, ArrowLeftRight, Package, Clock, AlertCircle, Download } from 'lucide-react';
+import { UserCheck, ArrowLeftRight, Package, Clock, AlertCircle, Download, X } from 'lucide-react';
 import BackgroundSlider from '../components/BackgroundSlider';
 import toast from 'react-hot-toast';
 
@@ -9,6 +9,7 @@ export default function Dashboard() {
   const [agentCompanies, setAgentCompanies] = useState([]);
   const [noAgentCompanies, setNoAgentCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [dismissedAgents, setDismissedAgents] = useState(new Set());
 
   const today = new Date();
   const todayDayIndex = today.getDay();
@@ -373,59 +374,81 @@ export default function Dashboard() {
             </div>
           </div>
         ) : (
-          agentCompanies.map((company) => {
-            const count = barcodeCount(company);
-            const hasBarcodes = count > 0;
-
-            return (
-              <div className="company-card" key={company.id}>
-                <div className="company-info">
-                  <h3>{company.name}</h3>
-                  <p>
-                    סוכן: {company.agent_name || 'לא צוין'}
-                    {company.agent_phone && ` · ${company.agent_phone}`}
-                    {' · '}
-                    <strong>{count}</strong> ברקודים
-                  </p>
-                  {!hasBarcodes && (
-                    <p style={{ color: 'var(--warning)', fontSize: 15 }}>
-                      <AlertCircle size={16} style={{ display: 'inline', verticalAlign: 'middle' }} />{' '}
-                      מגיע היום — אין חזרות פתוחות
-                    </p>
-                  )}
-                </div>
-                {hasBarcodes && (
-                  <div className="action-row">
-                    <button
-                      className="btn btn-success btn-sm"
-                      onClick={() => handleAgentSigned(company)}
-                    >
-                      הוחתם
-                    </button>
-                    <button
-                      className="btn btn-outline btn-sm"
-                      onClick={() => handlePostponeAgent(company)}
-                    >
-                      דחה שבוע
-                    </button>
-                    <button
-                      className="btn btn-outline btn-sm"
-                      onClick={() => exportCSV(company)}
-                    >
-                      <Download size={16} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
-                      ייצא CSV
-                    </button>
-                    <button
-                      className="btn btn-danger btn-sm"
-                      onClick={() => handleReturnedAndDelete(company)}
-                    >
-                      הוחזר ומחק
-                    </button>
+          <>
+            {/* סוכנים עם ברקודים — כרטיסים מלאים */}
+            {agentCompanies
+              .filter((c) => barcodeCount(c) > 0)
+              .map((company) => {
+                const count = barcodeCount(company);
+                return (
+                  <div className="company-card" key={company.id}>
+                    <div className="company-info">
+                      <h3>{company.name}</h3>
+                      <p>
+                        סוכן: {company.agent_name || 'לא צוין'}
+                        {company.agent_phone && ` · ${company.agent_phone}`}
+                        {' · '}
+                        <strong>{count}</strong> ברקודים
+                      </p>
+                    </div>
+                    <div className="action-row">
+                      <button
+                        className="btn btn-success btn-sm"
+                        onClick={() => handleAgentSigned(company)}
+                      >
+                        הוחתם
+                      </button>
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => handlePostponeAgent(company)}
+                      >
+                        דחה שבוע
+                      </button>
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => exportCSV(company)}
+                      >
+                        <Download size={16} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
+                        ייצא CSV
+                      </button>
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleReturnedAndDelete(company)}
+                      >
+                        הוחזר ומחק
+                      </button>
+                    </div>
                   </div>
-                )}
+                );
+              })}
+
+            {/* סוכנים ללא ברקודים — שורות קומפקטיות עם כפתור סגירה */}
+            {agentCompanies
+              .filter((c) => barcodeCount(c) === 0 && !dismissedAgents.has(c.id))
+              .length > 0 && (
+              <div className="compact-agents">
+                {agentCompanies
+                  .filter((c) => barcodeCount(c) === 0 && !dismissedAgents.has(c.id))
+                  .map((company) => (
+                    <div className="compact-agent-row" key={company.id}>
+                      <span className="compact-agent-name">{company.name}</span>
+                      <span className="compact-agent-info">
+                        {company.agent_name || 'סוכן לא צוין'} · אין חזרות
+                      </span>
+                      <button
+                        className="compact-agent-dismiss"
+                        onClick={() =>
+                          setDismissedAgents((prev) => new Set([...prev, company.id]))
+                        }
+                        title="הסר מהדשבורד היום"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
               </div>
-            );
-          })
+            )}
+          </>
         )}
       </div>
 
