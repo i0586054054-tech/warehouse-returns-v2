@@ -173,25 +173,13 @@ body {
 }
 
 .bg-slide-0 {
-  background:
-    radial-gradient(ellipse at 20% 50%, rgba(139,108,255,0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(255,107,53,0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 60% 80%, rgba(52,211,153,0.06) 0%, transparent 50%),
-    linear-gradient(135deg, #f5f3ff 0%, #ede9fe 50%, #faf5ff 100%);
+  background: url('/images/slide-1.png') center/cover no-repeat;
 }
 .bg-slide-1 {
-  background:
-    radial-gradient(ellipse at 70% 30%, rgba(124,92,252,0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 30% 70%, rgba(251,113,133,0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(139,108,255,0.05) 0%, transparent 70%),
-    linear-gradient(160deg, #ede9fe 0%, #f5f3ff 40%, #fdf2f8 100%);
+  background: url('/images/slide-2.png') center/cover no-repeat;
 }
 .bg-slide-2 {
-  background:
-    radial-gradient(ellipse at 40% 20%, rgba(52,211,153,0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 70%, rgba(139,108,255,0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 20% 80%, rgba(251,191,36,0.06) 0%, transparent 50%),
-    linear-gradient(145deg, #faf5ff 0%, #ede9fe 60%, #f0fdf4 100%);
+  background: url('/images/slide-3.png') center/cover no-repeat;
 }
 
 .bg-slider-controls {
@@ -537,8 +525,18 @@ tr:hover { background: var(--bg-card-hover); }
 .dashboard-greeting {
   position: relative;
   z-index: 1;
-  padding: 32px 24px 20px;
+  padding: 40px 24px 28px;
   text-align: center;
+}
+[data-theme="light"] .dashboard-greeting::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  border-radius: 22px;
+  z-index: -1;
 }
 .dashboard-greeting h1 {
   font-family: 'Sunday', sans-serif;
@@ -548,9 +546,16 @@ tr:hover { background: var(--bg-card-hover); }
   color: var(--text-primary);
   margin-bottom: 4px;
 }
+[data-theme="light"] .dashboard-greeting h1 {
+  text-shadow: 0 1px 8px rgba(255,255,255,0.6);
+}
 .dashboard-greeting p {
   font-size: 24px;
   color: var(--text-muted);
+}
+[data-theme="light"] .dashboard-greeting p {
+  color: var(--text-secondary);
+  text-shadow: 0 1px 4px rgba(255,255,255,0.5);
 }
 
 .date-display {
