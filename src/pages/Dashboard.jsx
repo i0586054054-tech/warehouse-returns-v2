@@ -299,13 +299,42 @@ export default function Dashboard() {
     );
   }
 
+  const totalAgents = agentCompanies.length;
+  const totalReturns = noAgentCompanies.length;
+  const totalWithBarcodes = [...agentCompanies, ...noAgentCompanies].filter(
+    (c) => barcodeCount(c) > 0
+  ).length;
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'בוקר טוב';
+    if (hour < 17) return 'צהריים טובים';
+    if (hour < 21) return 'ערב טוב';
+    return 'לילה טוב';
+  };
+
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">דשבורד</h1>
+      <div className="dashboard-greeting">
+        <h1>{getGreeting()}, מחסנאי 👋</h1>
+        <p>{getFormattedDate()}</p>
       </div>
 
-      <div className="date-display">{getFormattedDate()}</div>
+      {/* סטטיסטיקות */}
+      <div className="dashboard-stats">
+        <div className="stat-card">
+          <div className="stat-number purple">{totalAgents}</div>
+          <div className="stat-label">סוכנים היום</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-number green">{totalReturns}</div>
+          <div className="stat-label">החזרות היום</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-number orange">{totalWithBarcodes}</div>
+          <div className="stat-label">עם ברקודים</div>
+        </div>
+      </div>
 
       {/* סוכנים שמגיעים היום */}
       <div className="section">
