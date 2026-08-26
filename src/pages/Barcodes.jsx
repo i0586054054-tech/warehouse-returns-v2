@@ -149,7 +149,7 @@ export default function Barcodes() {
         <div className="empty-state"><p>טוען...</p></div>
       ) : filtered.length === 0 ? (
         <div className="empty-state">
-          <Package size={52} />
+          <Package size={80} />
           <p>אין ברקודים פתוחים</p>
         </div>
       ) : (
@@ -165,20 +165,20 @@ export default function Barcodes() {
                     className="btn btn-primary btn-sm"
                     onClick={() => exportCSV(company)}
                   >
-                    <Download size={15} />
+                    <Download size={28} />
                     CSV
                   </button>
                   <button
                     className="btn btn-danger btn-sm"
                     onClick={() => handleDeleteAll(company)}
                   >
-                    <Trash2 size={15} />
+                    <Trash2 size={28} />
                     הוחזר
                   </button>
                 </div>
                 <span className="company-group-count">{company.barcodes.length}</span>
                 <ChevronDown
-                  size={20}
+                  size={32}
                   className={`company-group-chevron ${isOpen ? 'open' : ''}`}
                 />
               </div>
@@ -198,7 +198,7 @@ export default function Barcodes() {
                       <tbody>
                         {company.barcodes.map((item) => (
                           <tr key={item.id}>
-                            <td style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: 15 }}>
+                            <td style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: 36 }}>
                               {item.barcode}
                             </td>
                             <td>{item.product_name || '—'}</td>
@@ -212,13 +212,13 @@ export default function Barcodes() {
                                     setEditQty(item.quantity);
                                   }}
                                 >
-                                  <Pencil size={14} />
+                                  <Pencil size={28} />
                                 </button>
                                 <button
                                   className="btn btn-danger btn-sm"
                                   onClick={() => handleDelete(item)}
                                 >
-                                  <Trash2 size={14} />
+                                  <Trash2 size={28} />
                                 </button>
                               </div>
                             </td>

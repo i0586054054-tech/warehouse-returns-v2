@@ -59,37 +59,55 @@ export default function Dashboard() {
         return 0;
       });
 
-      // --- חברות ללא סוכן שיום האיסוף שלהן היום ---
-      const { data: withoutAgent } = await supabase
+      // --- החזרות היום ---
+      // רק חברות שיום האיסוף שלהן היום וכבר עברו סוכן (הוחתם)
+      const { data: pickupToday } = await supabase
         .from('companies')
         .select(`*, barcodes(count)`)
-        .eq('has_agent', false)
-        .eq('pickup_day', todayDayIndex);
+        .eq('pickup_day', todayDayIndex)
+        .eq('has_agent', true);
 
       // סינון: רק חברות שלא נדחו
-      const filteredWithoutAgent = (withoutAgent || []).filter((c) => {
+      const filteredPickup = (pickupToday || []).filter((c) => {
         if (!c.next_pickup_override) return true;
         return c.next_pickup_override <= todayDateStr;
       });
 
+      // בודקים שהסוכן כבר הוחתם
+      let signedAgentCompanyIds = [];
+      if (filteredPickup.length > 0) {
+        const pickupIds = filteredPickup.map((c) => c.id);
+        const { data: signedVisits } = await supabase
+          .from('agent_visits')
+          .select('company_id')
+          .eq('actual_status', 'הוחתם')
+          .in('company_id', pickupIds);
+        signedAgentCompanyIds = (signedVisits || []).map((v) => v.company_id);
+      }
+
+      // רק חברות שהסוכן שלהן כבר הוחתם
+      const returnCandidates = filteredPickup.filter((c) =>
+        signedAgentCompanyIds.includes(c.id)
+      );
+
       // בדיקה אם כבר טופלו היום
-      const noAgentIds = filteredWithoutAgent.map((c) => c.id);
+      const returnIds = returnCandidates.map((c) => c.id);
       let handledReturnIds = [];
-      if (noAgentIds.length > 0) {
+      if (returnIds.length > 0) {
         const { data: todayReturns } = await supabase
           .from('returns_log')
           .select('company_id')
           .eq('return_date', todayDateStr)
-          .in('company_id', noAgentIds);
+          .in('company_id', returnIds);
         handledReturnIds = (todayReturns || []).map((r) => r.company_id);
       }
 
-      const activeNoAgentCompanies = filteredWithoutAgent.filter(
+      const activeReturnCompanies = returnCandidates.filter(
         (c) => !handledReturnIds.includes(c.id)
       );
 
       // מיון: חברות עם ברקודים קודם, אחרי כך ללא
-      activeNoAgentCompanies.sort((a, b) => {
+      activeReturnCompanies.sort((a, b) => {
         const aCount = a.barcodes?.[0]?.count || 0;
         const bCount = b.barcodes?.[0]?.count || 0;
         if (aCount > 0 && bCount === 0) return -1;
@@ -98,7 +116,7 @@ export default function Dashboard() {
       });
 
       setAgentCompanies(activeAgentCompanies);
-      setNoAgentCompanies(activeNoAgentCompanies);
+      setNoAgentCompanies(activeReturnCompanies);
     } catch (err) {
       console.error(err);
       toast.error('שגיאה בטעינת הנתונים');
@@ -339,14 +357,14 @@ export default function Dashboard() {
       {/* סוכנים שמגיעים היום */}
       <div className="section">
         <div className="section-title">
-          <UserCheck size={18} />
+          <UserCheck size={36} />
           סוכנים שמגיעים היום
         </div>
 
         {agentCompanies.length === 0 ? (
           <div className="card">
             <div className="empty-state">
-              <Clock size={32} />
+              <Clock size={64} />
               <p>אין סוכנים מתוכננים להיום</p>
             </div>
           </div>
@@ -366,8 +384,8 @@ export default function Dashboard() {
                     <strong>{count}</strong> ברקודים
                   </p>
                   {!hasBarcodes && (
-                    <p style={{ color: 'var(--warning)', fontSize: 12 }}>
-                      <AlertCircle size={12} style={{ display: 'inline', verticalAlign: 'middle' }} />{' '}
+                    <p style={{ color: 'var(--warning)', fontSize: 30 }}>
+                      <AlertCircle size={28} style={{ display: 'inline', verticalAlign: 'middle' }} />{' '}
                       מגיע היום — אין חזרות פתוחות
                     </p>
                   )}
@@ -390,7 +408,7 @@ export default function Dashboard() {
                       className="btn btn-outline btn-sm"
                       onClick={() => exportCSV(company)}
                     >
-                      <Download size={14} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
+                      <Download size={28} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
                       ייצא CSV
                     </button>
                     <button
@@ -410,14 +428,14 @@ export default function Dashboard() {
       {/* החזרות ללא סוכן */}
       <div className="section">
         <div className="section-title">
-          <Package size={18} />
-          החזרות ללא סוכן — היום
+          <Package size={36} />
+          החזרות היום — עברו סוכן
         </div>
 
         {noAgentCompanies.length === 0 ? (
           <div className="card">
             <div className="empty-state">
-              <ArrowLeftRight size={32} />
+              <ArrowLeftRight size={64} />
               <p>אין החזרות מתוכננות להיום</p>
             </div>
           </div>
@@ -434,8 +452,8 @@ export default function Dashboard() {
                     <strong>{count}</strong> ברקודים להחזרה
                   </p>
                   {!hasBarcodes && (
-                    <p style={{ color: 'var(--warning)', fontSize: 12 }}>
-                      <AlertCircle size={12} style={{ display: 'inline', verticalAlign: 'middle' }} />{' '}
+                    <p style={{ color: 'var(--warning)', fontSize: 30 }}>
+                      <AlertCircle size={28} style={{ display: 'inline', verticalAlign: 'middle' }} />{' '}
                       אין ברקודים פתוחים
                     </p>
                   )}
@@ -458,7 +476,7 @@ export default function Dashboard() {
                       className="btn btn-outline btn-sm"
                       onClick={() => exportCSV(company)}
                     >
-                      <Download size={14} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
+                      <Download size={28} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
                       ייצא CSV
                     </button>
                   </div>
