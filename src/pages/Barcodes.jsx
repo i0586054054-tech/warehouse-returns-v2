@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/AuthContext';
 import { Search, Pencil, Trash2, Package, Download, ChevronDown } from 'lucide-react';
 import Modal from '../components/Modal';
 import toast from 'react-hot-toast';
 
 export default function Barcodes() {
+  const { user } = useAuth();
   const [companies, setCompanies] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -84,6 +86,7 @@ export default function Barcodes() {
     await supabase.from('returns_log').insert({
       company_id: company.id,
       status: 'הוחזר',
+      user_id: user.id,
     });
     toast.success(`${company.name} — הברקודים נמחקו`);
     triggerSync();
@@ -109,8 +112,12 @@ export default function Barcodes() {
     toast.success('הקובץ הורד');
   }
 
-  function triggerSync() {
-    fetch('/api/sync-sheets', { method: 'POST' }).catch(() => {});
+  async function triggerSync() {
+    const { data: { session } } = await supabase.auth.getSession();
+    fetch('/api/sync-sheets', {
+      method: 'POST',
+      headers: session ? { Authorization: `Bearer ${session.access_token}` } : {},
+    }).catch(() => {});
   }
 
   const totalBarcodes = companies.reduce((sum, c) => sum + c.barcodes.length, 0);

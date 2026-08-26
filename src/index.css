@@ -771,12 +771,18 @@ tr:hover { background: var(--bg-card-hover); }
   gap: 8px;
 }
 
-/* ===== Theme toggle ===== */
-.theme-toggle {
+/* ===== Top bar (theme toggle + sign out) ===== */
+.top-bar {
   position: fixed;
-  top: 16px;
-  left: 16px;
+  top: 12px;
+  left: 12px;
   z-index: 150;
+  display: flex;
+  gap: 8px;
+}
+
+.theme-toggle,
+.signout-btn {
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -792,10 +798,54 @@ tr:hover { background: var(--bg-card-hover); }
   transition: all 0.3s;
   box-shadow: var(--shadow);
 }
-.theme-toggle:hover {
+.theme-toggle:hover,
+.signout-btn:hover {
   border-color: var(--primary);
   color: var(--primary);
   transform: scale(1.08);
+}
+
+/* ===== Login Page ===== */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg-base);
+}
+.login-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 28px;
+  padding: 40px 28px;
+  width: 100%;
+  max-width: 420px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-lg);
+}
+.login-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.login-header h1 {
+  font-family: 'Sunday', sans-serif;
+  font-size: 42px;
+  font-weight: 900;
+  font-style: italic;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+.login-header p {
+  font-size: 20px;
+  color: var(--text-muted);
+}
+.login-footer {
+  text-align: center;
+  font-size: 16px;
+  color: var(--text-muted);
+  margin-top: 20px;
 }
 
 /* ===== Search ===== */

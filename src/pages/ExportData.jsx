@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/AuthContext';
 import { Download, FileSpreadsheet, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ExportData() {
+  const { user } = useAuth();
   const [companiesWithBarcodes, setCompaniesWithBarcodes] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -89,12 +91,17 @@ export default function ExportData() {
       await supabase.from('returns_log').insert({
         company_id: company.id,
         status: 'הוחזר',
+        user_id: user.id,
       });
 
       toast.success(`${company.name} — הברקודים נמחקו`);
 
       // סנכרון
-      fetch('/api/sync-sheets', { method: 'POST' }).catch(() => {});
+      const { data: { session } } = await supabase.auth.getSession();
+      fetch('/api/sync-sheets', {
+        method: 'POST',
+        headers: session ? { Authorization: `Bearer ${session.access_token}` } : {},
+      }).catch(() => {});
 
       // רענון
       loadAll();

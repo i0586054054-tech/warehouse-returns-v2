@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/AuthContext';
 import { DAY_OPTIONS } from '../lib/helpers';
 import Modal from '../components/Modal';
 import { Plus, Pencil, Trash2, Search } from 'lucide-react';
@@ -16,6 +17,7 @@ const emptyForm = {
 };
 
 export default function Companies() {
+  const { user } = useAuth();
   const [companies, setCompanies] = useState([]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -75,7 +77,7 @@ export default function Companies() {
         await supabase.from('companies').update(payload).eq('id', editingId);
         toast.success('חברה עודכנה');
       } else {
-        await supabase.from('companies').insert(payload);
+        await supabase.from('companies').insert({ ...payload, user_id: user.id });
         toast.success('חברה נוספה');
       }
       setModalOpen(false);
@@ -86,8 +88,12 @@ export default function Companies() {
     }
   }
 
-  function triggerSync() {
-    fetch('/api/sync-sheets', { method: 'POST' }).catch(() => {});
+  async function triggerSync() {
+    const { data: { session } } = await supabase.auth.getSession();
+    fetch('/api/sync-sheets', {
+      method: 'POST',
+      headers: session ? { Authorization: `Bearer ${session.access_token}` } : {},
+    }).catch(() => {});
   }
 
   async function handleDelete(company) {

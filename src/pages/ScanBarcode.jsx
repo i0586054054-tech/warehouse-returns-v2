@@ -1,15 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/AuthContext';
 import { ScanBarcode as ScanIcon, Plus, Check, Camera, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ScanBarcode() {
+  const { user } = useAuth();
   const [barcode, setBarcode] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [companyId, setCompanyId] = useState('');
   const [productName, setProductName] = useState('');
   const [companies, setCompanies] = useState([]);
   const [existingItem, setExistingItem] = useState(null);
+  const [catalogSuggestion, setCatalogSuggestion] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const inputRef = useRef(null);
@@ -37,6 +40,7 @@ export default function ScanBarcode() {
     const code = (value || barcode).trim();
     if (!code) return;
     setIsSearching(true);
+    setCatalogSuggestion(null);
 
     const { data } = await supabase
       .from('barcodes')
@@ -55,6 +59,24 @@ export default function ScanBarcode() {
       setQuantity(1);
       setCompanyId('');
       setProductName('');
+
+      // Check shared catalog for suggestion
+      const { data: catalogMatch } = await supabase
+        .from('barcode_catalog')
+        .select('company_name, product_name')
+        .eq('barcode', code)
+        .maybeSingle();
+
+      if (catalogMatch) {
+        setCatalogSuggestion(catalogMatch);
+        // Auto-select company if name matches
+        const match = companies.find(
+          (c) => c.name === catalogMatch.company_name
+        );
+        if (match) setCompanyId(match.id);
+        if (catalogMatch.product_name) setProductName(catalogMatch.product_name);
+        toast(`ברקוד מוכר: ${catalogMatch.company_name}`, { icon: '💡' });
+      }
     }
     setIsSearching(false);
   }
@@ -143,6 +165,7 @@ export default function ScanBarcode() {
           barcode: barcode.trim(),
           quantity,
           company_id: companyId,
+          user_id: user.id,
         };
         if (productName.trim()) insertData.product_name = productName.trim();
         const { error } = await supabase.from('barcodes').insert(insertData);
@@ -156,6 +179,20 @@ export default function ScanBarcode() {
           return;
         }
         toast.success('ברקוד נוסף בהצלחה');
+      }
+
+      // Contribute to shared barcode catalog
+      const companyName = companies.find((c) => c.id === companyId)?.name;
+      if (companyName) {
+        await supabase.from('barcode_catalog').upsert(
+          {
+            barcode: barcode.trim(),
+            company_name: companyName,
+            product_name: productName.trim() || null,
+            contributed_by: user.id,
+          },
+          { onConflict: 'barcode' }
+        ).catch(() => {}); // silent — catalog is best-effort
       }
 
       // סנכרון ל-Google Sheets ברקע
@@ -174,8 +211,12 @@ export default function ScanBarcode() {
     }
   }
 
-  function triggerSync() {
-    fetch('/api/sync-sheets', { method: 'POST' }).catch(() => {});
+  async function triggerSync() {
+    const { data: { session } } = await supabase.auth.getSession();
+    fetch('/api/sync-sheets', {
+      method: 'POST',
+      headers: session ? { Authorization: `Bearer ${session.access_token}` } : {},
+    }).catch(() => {});
   }
 
   return (
@@ -251,6 +292,22 @@ export default function ScanBarcode() {
               </button>
             </div>
           </div>
+
+          {/* הצעה מהקטלוג */}
+          {catalogSuggestion && !existingItem && (
+            <div
+              style={{
+                padding: '8px 12px',
+                background: 'rgba(139, 108, 255, 0.1)',
+                borderRadius: 8,
+                marginBottom: 14,
+                fontSize: 17,
+              }}
+            >
+              💡 ברקוד מוכר במערכת: <strong>{catalogSuggestion.company_name}</strong>
+              {catalogSuggestion.product_name && ` · ${catalogSuggestion.product_name}`}
+            </div>
+          )}
 
           {/* סטטוס */}
           {existingItem && (

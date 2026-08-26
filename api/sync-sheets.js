@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 function getSupabase() {
   return createClient(
     process.env.VITE_SUPABASE_URL,
-    process.env.VITE_SUPABASE_ANON_KEY
+    process.env.SUPABASE_SERVICE_ROLE_KEY
   );
 }
 
@@ -26,16 +26,43 @@ export default async function handler(req, res) {
 
   try {
     const supabase = getSupabase();
-    const sheets = getSheets();
-    const barcodesSheetId = process.env.GOOGLE_SHEETS_ID;
-    const suppliersSheetId = process.env.GOOGLE_SUPPLIERS_SHEET_ID;
 
-    // --- Sync barcodes to returns sheet ---
-    const { data: barcodes, error: bErr } = await supabase
+    // Identify user from JWT (frontend calls) or fall back to global sync
+    let userId = null;
+    let barcodesSheetId = process.env.GOOGLE_SHEETS_ID;
+    let suppliersSheetId = process.env.GOOGLE_SUPPLIERS_SHEET_ID;
+
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.replace('Bearer ', '');
+    if (token) {
+      const { data: { user } } = await supabase.auth.getUser(token);
+      if (user) {
+        userId = user.id;
+        // Check if user has personal sheet IDs
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('google_sheets_id, google_suppliers_sheet_id')
+          .eq('id', userId)
+          .single();
+        if (profile?.google_sheets_id) barcodesSheetId = profile.google_sheets_id;
+        if (profile?.google_suppliers_sheet_id) suppliersSheetId = profile.google_suppliers_sheet_id;
+      }
+    }
+
+    if (!barcodesSheetId) {
+      return res.status(200).json({ success: true, skipped: 'No sheet ID configured' });
+    }
+
+    const sheets = getSheets();
+
+    // Build query — scope to user if authenticated
+    let barcodesQuery = supabase
       .from('barcodes')
       .select('barcode, quantity, companies(name)')
       .order('barcode');
+    if (userId) barcodesQuery = barcodesQuery.eq('user_id', userId);
 
+    const { data: barcodes, error: bErr } = await barcodesQuery;
     if (bErr) throw bErr;
 
     const barcodeRows = [
@@ -59,12 +86,14 @@ export default async function handler(req, res) {
       requestBody: { values: barcodeRows },
     });
 
-    // --- Sync companies to returns sheet ---
-    const { data: companies, error: cErr } = await supabase
+    // --- Sync companies ---
+    let companiesQuery = supabase
       .from('companies')
       .select('name, agent_name, has_agent, pickup_day, agent_visit_day, notes, barcodes(count)')
       .order('name');
+    if (userId) companiesQuery = companiesQuery.eq('user_id', userId);
 
+    const { data: companies, error: cErr } = await companiesQuery;
     if (cErr) throw cErr;
 
     const companyRows = [
@@ -91,7 +120,7 @@ export default async function handler(req, res) {
       requestBody: { values: companyRows },
     });
 
-    // --- Sync companies to suppliers tracking sheet ---
+    // --- Sync to suppliers tracking sheet ---
     if (suppliersSheetId) {
       const hasAgentLabel = (c) => {
         if (c.has_agent) return 'כן';
@@ -112,7 +141,6 @@ export default async function handler(req, res) {
       ];
 
       try {
-        // Find the sheet name (gid=99132618 might be a different tab name)
         const spreadsheet = await sheets.spreadsheets.get({
           spreadsheetId: suppliersSheetId,
         });

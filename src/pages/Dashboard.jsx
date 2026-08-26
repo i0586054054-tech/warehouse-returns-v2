@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/AuthContext';
 import { getFormattedDate, getNextWeekDate } from '../lib/helpers';
 import { UserCheck, ArrowLeftRight, Package, Clock, AlertCircle, Download, X } from 'lucide-react';
 import BackgroundSlider from '../components/BackgroundSlider';
 import toast from 'react-hot-toast';
 
 export default function Dashboard() {
+  const { user, profile } = useAuth();
   const [agentCompanies, setAgentCompanies] = useState([]);
   const [noAgentCompanies, setNoAgentCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -135,6 +137,7 @@ export default function Dashboard() {
         company_id: company.id,
         scheduled_date: todayDateStr,
         actual_status: 'הוחתם',
+        user_id: user.id,
       });
 
       // מנקה override אם היה
@@ -162,6 +165,7 @@ export default function Dashboard() {
         company_id: company.id,
         scheduled_date: todayDateStr,
         actual_status: 'נדחה לשבוע הבא',
+        user_id: user.id,
       });
 
       // קובע override לשבוע הבא
@@ -190,6 +194,7 @@ export default function Dashboard() {
       await supabase.from('returns_log').insert({
         company_id: company.id,
         status: 'הוחזר',
+        user_id: user.id,
       });
 
       // מנקה override אם היה
@@ -220,6 +225,7 @@ export default function Dashboard() {
       await supabase.from('returns_log').insert({
         company_id: company.id,
         status: 'הוחזר',
+        user_id: user.id,
       });
 
       // מנקה override אם היה
@@ -246,6 +252,7 @@ export default function Dashboard() {
       await supabase.from('returns_log').insert({
         company_id: company.id,
         status: 'לא נאסף',
+        user_id: user.id,
       });
 
       // קובע override לשבוע הבא
@@ -300,11 +307,13 @@ export default function Dashboard() {
     }
   }
 
-  function triggerSync() {
+  async function triggerSync() {
     // שליחת סנכרון ל-Google Sheets ברקע
-    fetch('/api/sync-sheets', { method: 'POST' }).catch(() => {
-      // שגיאה שקטה — הסנכרון לא קריטי
-    });
+    const { data: { session } } = await supabase.auth.getSession();
+    fetch('/api/sync-sheets', {
+      method: 'POST',
+      headers: session ? { Authorization: `Bearer ${session.access_token}` } : {},
+    }).catch(() => {});
   }
 
   const barcodeCount = (company) => {
@@ -338,7 +347,7 @@ export default function Dashboard() {
       <div className="greeting-slider-wrapper">
         <BackgroundSlider />
         <div className="dashboard-greeting">
-          <h1>{getGreeting()}, מחסנאי 👋</h1>
+          <h1>{getGreeting()}, {profile?.display_name || 'מחסנאי'} 👋</h1>
           <p>{getFormattedDate()}</p>
         </div>
       </div>
