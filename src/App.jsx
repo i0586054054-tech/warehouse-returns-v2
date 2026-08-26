@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import ScanBarcode from './pages/ScanBarcode';
 import Companies from './pages/Companies';
 import Barcodes from './pages/Barcodes';
+import Boxes from './pages/Boxes';
 import AdminPanel from './pages/AdminPanel';
 import Settings from './pages/Settings';
 
@@ -33,6 +34,7 @@ function App() {
                 <Route path="scan" element={<ScanBarcode />} />
                 <Route path="companies" element={<Companies />} />
                 <Route path="barcodes" element={<Barcodes />} />
+                <Route path="boxes" element={<Boxes />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
               </Route>

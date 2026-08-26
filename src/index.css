@@ -848,6 +848,123 @@ tr:hover { background: var(--bg-card-hover); }
   margin-top: 20px;
 }
 
+/* ===== Boxes Page ===== */
+.box-day {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.3s;
+}
+.box-day:hover {
+  border-color: var(--border-light);
+}
+.box-day-today {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-glow);
+}
+.box-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.box-day-header:hover {
+  background: var(--bg-card-hover);
+}
+.box-day-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.box-day-title h2 {
+  font-size: 25px;
+  font-weight: 900;
+  color: var(--text-primary);
+  margin: 0;
+}
+.box-day-title svg {
+  color: var(--primary);
+}
+.box-day-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.box-day-count {
+  font-size: 16px;
+  color: var(--text-muted);
+}
+.box-day-chevron {
+  color: var(--text-muted);
+  transition: transform 0.3s;
+}
+.box-day-chevron.open {
+  transform: rotate(180deg);
+}
+.box-day-body {
+  border-top: 1px solid var(--border-color);
+  padding: 12px 0 4px;
+}
+.box-empty {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: 18px;
+}
+
+.box-company {
+  margin: 0 12px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+.box-company-empty {
+  opacity: 0.6;
+}
+.box-company-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.box-company-header:hover {
+  background: var(--bg-card-hover);
+}
+.box-company-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.box-company-info strong {
+  font-size: 21px;
+  color: var(--text-primary);
+}
+.box-company-info span {
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+.box-company-items {
+  border-top: 1px solid var(--border-color);
+}
+.box-company-items table {
+  width: 100%;
+}
+.box-company-items td {
+  font-size: 18px;
+}
+.box-company-items th {
+  font-size: 16px;
+}
+
 /* ===== Search ===== */
 .search-box { position: relative; margin-bottom: 18px; }
 .search-box input {
