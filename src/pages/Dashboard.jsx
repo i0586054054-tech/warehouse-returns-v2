@@ -17,7 +17,19 @@ export default function Dashboard() {
   const [boxData, setBoxData] = useState({});
   const [expandedBox, setExpandedBox] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [dismissedAgents, setDismissedAgents] = useState(new Set());
+  const [dismissedAgents, setDismissedAgents] = useState(() => {
+    try {
+      const stored = localStorage.getItem('dismissed-agents');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Only use if saved for today
+        if (parsed.date === new Date().toISOString().split('T')[0]) {
+          return new Set(parsed.ids);
+        }
+      }
+    } catch {}
+    return new Set();
+  });
 
   const today = new Date();
   const todayDayIndex = today.getDay();
@@ -491,9 +503,16 @@ export default function Dashboard() {
                       </span>
                       <button
                         className="compact-agent-dismiss"
-                        onClick={() =>
-                          setDismissedAgents((prev) => new Set([...prev, company.id]))
-                        }
+                        onClick={() => {
+                          setDismissedAgents((prev) => {
+                            const next = new Set([...prev, company.id]);
+                            localStorage.setItem('dismissed-agents', JSON.stringify({
+                              date: new Date().toISOString().split('T')[0],
+                              ids: [...next],
+                            }));
+                            return next;
+                          });
+                        }}
                         title="הסר מהדשבורד היום"
                       >
                         <X size={16} />

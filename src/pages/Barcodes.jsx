@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
-import { Search, Pencil, Trash2, Package, Download, ChevronDown } from 'lucide-react';
+import { Search, Pencil, Trash2, Package, Download, ChevronDown, UserCheck } from 'lucide-react';
 import Modal from '../components/Modal';
 import toast from 'react-hot-toast';
 
@@ -112,6 +112,23 @@ export default function Barcodes() {
     toast.success('הקובץ הורד');
   }
 
+  async function handleAgentSigned(company) {
+    if (!confirm(`לסמן שסוכן של ${company.name} הוחתם?`)) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+    try {
+      await supabase.from('agent_visits').insert({
+        company_id: company.id,
+        scheduled_date: todayStr,
+        actual_status: 'הוחתם',
+        user_id: user.id,
+      });
+      toast.success(`סוכן ${company.name} הוחתם`);
+      triggerSync();
+    } catch (err) {
+      toast.error('שגיאה בעדכון');
+    }
+  }
+
   async function triggerSync() {
     const { data: { session } } = await supabase.auth.getSession();
     fetch('/api/sync-sheets', {
@@ -168,6 +185,13 @@ export default function Barcodes() {
               <div className="company-group-header" onClick={() => toggleExpand(company.id)}>
                 <h3>{company.name}</h3>
                 <div className="company-group-actions" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    className="btn btn-success btn-sm"
+                    onClick={() => handleAgentSigned(company)}
+                  >
+                    <UserCheck size={16} />
+                    הוחתם
+                  </button>
                   <button
                     className="btn btn-primary btn-sm"
                     onClick={() => exportCSV(company)}
