@@ -2,14 +2,20 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { getFormattedDate, getNextWeekDate } from '../lib/helpers';
-import { UserCheck, ArrowLeftRight, Package, Clock, AlertCircle, Download, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { UserCheck, ArrowLeftRight, Package, Clock, AlertCircle, Download, X, Box, ChevronDown, Check } from 'lucide-react';
 import BackgroundSlider from '../components/BackgroundSlider';
 import toast from 'react-hot-toast';
 
+const WORK_DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'];
+
 export default function Dashboard() {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [agentCompanies, setAgentCompanies] = useState([]);
   const [noAgentCompanies, setNoAgentCompanies] = useState([]);
+  const [boxData, setBoxData] = useState({});
+  const [expandedBox, setExpandedBox] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dismissedAgents, setDismissedAgents] = useState(new Set());
 
@@ -119,6 +125,45 @@ export default function Dashboard() {
         return 0;
       });
 
+      // --- קופסאות לימים הקרובים (ראשון-חמישי) ---
+      const { data: allCompanies } = await supabase
+        .from('companies')
+        .select('id, name, pickup_day')
+        .order('name');
+
+      const { data: allBarcodes } = await supabase
+        .from('barcodes')
+        .select('id, barcode, quantity, product_name, company_id');
+
+      const barcodesByCompany = {};
+      (allBarcodes || []).forEach((b) => {
+        if (!barcodesByCompany[b.company_id]) barcodesByCompany[b.company_id] = [];
+        barcodesByCompany[b.company_id].push(b);
+      });
+
+      const boxes = {};
+      for (let i = 0; i <= 4; i++) boxes[i] = []; // 0=ראשון ... 4=חמישי
+
+      (allCompanies || []).forEach((c) => {
+        if (c.pickup_day == null || c.pickup_day > 4) return;
+        const compBarcodes = barcodesByCompany[c.id] || [];
+        boxes[c.pickup_day].push({
+          ...c,
+          barcodes: compBarcodes,
+          totalItems: compBarcodes.reduce((sum, b) => sum + b.quantity, 0),
+        });
+      });
+
+      // Sort: companies with barcodes first
+      Object.keys(boxes).forEach((day) => {
+        boxes[day].sort((a, b) => {
+          if (a.barcodes.length > 0 && b.barcodes.length === 0) return -1;
+          if (a.barcodes.length === 0 && b.barcodes.length > 0) return 1;
+          return a.name.localeCompare(b.name);
+        });
+      });
+
+      setBoxData(boxes);
       setAgentCompanies(activeAgentCompanies);
       setNoAgentCompanies(activeReturnCompanies);
     } catch (err) {
@@ -521,6 +566,68 @@ export default function Dashboard() {
             );
           })
         )}
+      </div>
+
+      {/* קופסאות החזרה — סקירה שבועית */}
+      <div className="section">
+        <div className="section-title" style={{ cursor: 'pointer' }} onClick={() => navigate('/boxes')}>
+          <Box size={20} />
+          קופסאות החזרה
+        </div>
+
+        <div className="boxes-week-grid">
+          {[0, 1, 2, 3, 4].map((dayIndex) => {
+            const companies = boxData[dayIndex] || [];
+            const isToday = dayIndex === todayDayIndex;
+            const withBarcodes = companies.filter((c) => c.barcodes.length > 0);
+            const totalBarcodes = companies.reduce((sum, c) => sum + c.barcodes.length, 0);
+            const totalItems = companies.reduce((sum, c) => sum + c.totalItems, 0);
+            const isOpen = expandedBox === dayIndex;
+
+            return (
+              <div
+                className={`box-week-card ${isToday ? 'box-week-today' : ''}`}
+                key={dayIndex}
+                onClick={() => setExpandedBox(isOpen ? null : dayIndex)}
+              >
+                <div className="box-week-header">
+                  <span className="box-week-day">
+                    יום {WORK_DAYS[dayIndex]}
+                    {isToday && <span className="badge badge-info" style={{ marginRight: 6, fontSize: 13 }}>היום</span>}
+                  </span>
+                  {totalBarcodes > 0 ? (
+                    <span className="box-week-count">{totalBarcodes}</span>
+                  ) : (
+                    <Check size={16} style={{ color: 'var(--success)' }} />
+                  )}
+                </div>
+
+                {totalBarcodes > 0 && (
+                  <p className="box-week-meta">
+                    {withBarcodes.length} חברות · {totalItems} פריטים
+                  </p>
+                )}
+                {totalBarcodes === 0 && companies.length > 0 && (
+                  <p className="box-week-meta">{companies.length} חברות · מוכן</p>
+                )}
+                {companies.length === 0 && (
+                  <p className="box-week-meta">אין חברות</p>
+                )}
+
+                {isOpen && withBarcodes.length > 0 && (
+                  <div className="box-week-details" onClick={(e) => e.stopPropagation()}>
+                    {withBarcodes.map((company) => (
+                      <div className="box-week-company" key={company.id}>
+                        <strong>{company.name}</strong>
+                        <span>{company.barcodes.length} ברקודים · {company.totalItems} פריטים</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
