@@ -1,12 +1,22 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/AuthContext';
 import { LogIn } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Login() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Already logged in — redirect to dashboard
+  if (user) {
+    navigate('/', { replace: true });
+    return null;
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -23,6 +33,8 @@ export default function Login() {
 
     if (error) {
       toast.error('אימייל או סיסמה שגויים');
+    } else {
+      navigate('/', { replace: true });
     }
     setLoading(false);
   }
