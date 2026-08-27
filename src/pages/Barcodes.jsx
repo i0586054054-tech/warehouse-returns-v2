@@ -21,16 +21,28 @@ export default function Barcodes() {
   async function loadData() {
     setLoading(true);
 
-    // Load all companies with barcodes
+    // Load all companies with agent info
     const { data: allCompanies } = await supabase
       .from('companies')
-      .select('id, name')
+      .select('id, name, has_agent')
       .order('name');
+
+    const companyMap = {};
+    (allCompanies || []).forEach((c) => { companyMap[c.id] = c; });
 
     const { data: allBarcodes } = await supabase
       .from('barcodes')
       .select('*, companies(name)')
       .order('barcode');
+
+    // Check which companies already signed today
+    const todayStr = new Date().toISOString().split('T')[0];
+    const { data: todayVisits } = await supabase
+      .from('agent_visits')
+      .select('company_id')
+      .eq('scheduled_date', todayStr)
+      .eq('actual_status', 'הוחתם');
+    const signedToday = new Set((todayVisits || []).map((v) => v.company_id));
 
     // Group barcodes by company
     const grouped = {};
@@ -40,6 +52,8 @@ export default function Barcodes() {
         grouped[cid] = {
           id: cid,
           name: b.companies?.name || 'ללא חברה',
+          has_agent: companyMap[cid]?.has_agent || false,
+          signed_today: signedToday.has(cid),
           barcodes: [],
         };
       }
@@ -124,6 +138,7 @@ export default function Barcodes() {
       });
       toast.success(`סוכן ${company.name} הוחתם`);
       triggerSync();
+      loadData();
     } catch (err) {
       toast.error('שגיאה בעדכון');
     }
@@ -185,13 +200,21 @@ export default function Barcodes() {
               <div className="company-group-header" onClick={() => toggleExpand(company.id)}>
                 <h3>{company.name}</h3>
                 <div className="company-group-actions" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    className="btn btn-success btn-sm"
-                    onClick={() => handleAgentSigned(company)}
-                  >
-                    <UserCheck size={16} />
-                    הוחתם
-                  </button>
+                  {company.has_agent && !company.signed_today && (
+                    <button
+                      className="btn btn-success btn-sm"
+                      onClick={() => handleAgentSigned(company)}
+                    >
+                      <UserCheck size={16} />
+                      הוחתם
+                    </button>
+                  )}
+                  {company.has_agent && company.signed_today && (
+                    <span className="badge badge-success" style={{ padding: '8px 12px' }}>
+                      <UserCheck size={14} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
+                      הוחתם
+                    </span>
+                  )}
                   <button
                     className="btn btn-primary btn-sm"
                     onClick={() => exportCSV(company)}
