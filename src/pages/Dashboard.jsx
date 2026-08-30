@@ -22,7 +22,18 @@ export default function Dashboard() {
       const stored = localStorage.getItem('dismissed-agents');
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Only use if saved for today
+        if (parsed.date === new Date().toISOString().split('T')[0]) {
+          return new Set(parsed.ids);
+        }
+      }
+    } catch {}
+    return new Set();
+  });
+  const [dismissedReturns, setDismissedReturns] = useState(() => {
+    try {
+      const stored = localStorage.getItem('dismissed-returns');
+      if (stored) {
+        const parsed = JSON.parse(stored);
         if (parsed.date === new Date().toISOString().split('T')[0]) {
           return new Set(parsed.ids);
         }
@@ -159,6 +170,7 @@ export default function Dashboard() {
       (allCompanies || []).forEach((c) => {
         if (c.pickup_day == null || c.pickup_day > 4) return;
         const compBarcodes = barcodesByCompany[c.id] || [];
+        if (compBarcodes.length === 0) return;
         boxes[c.pickup_day].push({
           ...c,
           barcodes: compBarcodes,
@@ -166,13 +178,8 @@ export default function Dashboard() {
         });
       });
 
-      // Sort: companies with barcodes first
       Object.keys(boxes).forEach((day) => {
-        boxes[day].sort((a, b) => {
-          if (a.barcodes.length > 0 && b.barcodes.length === 0) return -1;
-          if (a.barcodes.length === 0 && b.barcodes.length > 0) return 1;
-          return a.name.localeCompare(b.name);
-        });
+        boxes[day].sort((a, b) => a.name.localeCompare(b.name));
       });
 
       setBoxData(boxes);
@@ -540,50 +547,77 @@ export default function Dashboard() {
             </div>
           </div>
         ) : (
-          noAgentCompanies.map((company) => {
-            const count = barcodeCount(company);
-            const hasBarcodes = count > 0;
-
-            return (
-              <div className="company-card" key={company.id}>
-                <div className="company-info">
-                  <h3>{company.name}</h3>
-                  <p>
-                    <strong>{count}</strong> ברקודים להחזרה
-                  </p>
-                  {!hasBarcodes && (
-                    <p style={{ color: 'var(--warning)', fontSize: 15 }}>
-                      <AlertCircle size={16} style={{ display: 'inline', verticalAlign: 'middle' }} />{' '}
-                      אין ברקודים פתוחים
-                    </p>
-                  )}
-                </div>
-                {hasBarcodes && (
-                  <div className="action-row">
-                    <button
-                      className="btn btn-success btn-sm"
-                      onClick={() => handleReturnedToCompany(company)}
-                    >
-                      הוחזר
-                    </button>
-                    <button
-                      className="btn btn-outline btn-sm"
-                      onClick={() => handleNotCollected(company)}
-                    >
-                      לא נאסף
-                    </button>
-                    <button
-                      className="btn btn-outline btn-sm"
-                      onClick={() => exportCSV(company)}
-                    >
-                      <Download size={16} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
-                      ייצא CSV
-                    </button>
+          <>
+            {/* חברות עם ברקודים — כרטיסים מלאים */}
+            {noAgentCompanies
+              .filter((c) => barcodeCount(c) > 0)
+              .map((company) => {
+                const count = barcodeCount(company);
+                return (
+                  <div className="company-card" key={company.id}>
+                    <div className="company-info">
+                      <h3>{company.name}</h3>
+                      <p>
+                        <strong>{count}</strong> ברקודים להחזרה
+                      </p>
+                    </div>
+                    <div className="action-row">
+                      <button
+                        className="btn btn-success btn-sm"
+                        onClick={() => handleReturnedToCompany(company)}
+                      >
+                        הוחזר
+                      </button>
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => handleNotCollected(company)}
+                      >
+                        לא נאסף
+                      </button>
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => exportCSV(company)}
+                      >
+                        <Download size={16} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
+                        ייצא CSV
+                      </button>
+                    </div>
                   </div>
-                )}
+                );
+              })}
+
+            {/* חברות ללא ברקודים — שורות קומפקטיות עם כפתור סגירה */}
+            {noAgentCompanies
+              .filter((c) => barcodeCount(c) === 0 && !dismissedReturns.has(c.id))
+              .length > 0 && (
+              <div className="compact-agents">
+                {noAgentCompanies
+                  .filter((c) => barcodeCount(c) === 0 && !dismissedReturns.has(c.id))
+                  .map((company) => (
+                    <div className="compact-agent-row" key={company.id}>
+                      <span className="compact-agent-name">{company.name}</span>
+                      <span className="compact-agent-info">אין ברקודים פתוחים</span>
+                      <button
+                        className="compact-agent-dismiss"
+                        onClick={() => {
+                          setDismissedReturns((prev) => {
+                            const next = new Set([...prev, company.id]);
+                            localStorage.setItem('dismissed-returns', JSON.stringify({
+                              date: new Date().toISOString().split('T')[0],
+                              ids: [...next],
+                            }));
+                            return next;
+                          });
+                        }}
+                        title="הסר מהדשבורד היום"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
               </div>
-            );
-          })
+            )}
+          </>
         )}
       </div>
 
@@ -598,7 +632,6 @@ export default function Dashboard() {
           {[0, 1, 2, 3, 4].map((dayIndex) => {
             const companies = boxData[dayIndex] || [];
             const isToday = dayIndex === todayDayIndex;
-            const withBarcodes = companies.filter((c) => c.barcodes.length > 0);
             const totalBarcodes = companies.reduce((sum, c) => sum + c.barcodes.length, 0);
             const totalItems = companies.reduce((sum, c) => sum + c.totalItems, 0);
             const isOpen = expandedBox === dayIndex;
@@ -621,21 +654,17 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {totalBarcodes > 0 && (
+                {companies.length > 0 ? (
                   <p className="box-week-meta">
-                    {withBarcodes.length} חברות · {totalItems} פריטים
+                    {companies.length} חברות · {totalItems} פריטים
                   </p>
-                )}
-                {totalBarcodes === 0 && companies.length > 0 && (
-                  <p className="box-week-meta">{companies.length} חברות · מוכן</p>
-                )}
-                {companies.length === 0 && (
-                  <p className="box-week-meta">אין חברות</p>
+                ) : (
+                  <p className="box-week-meta">ריק</p>
                 )}
 
-                {isOpen && withBarcodes.length > 0 && (
+                {isOpen && companies.length > 0 && (
                   <div className="box-week-details" onClick={(e) => e.stopPropagation()}>
-                    {withBarcodes.map((company) => (
+                    {companies.map((company) => (
                       <div className="box-week-company" key={company.id}>
                         <strong>{company.name}</strong>
                         <span>{company.barcodes.length} ברקודים · {company.totalItems} פריטים</span>

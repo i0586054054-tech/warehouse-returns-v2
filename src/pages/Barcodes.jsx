@@ -202,17 +202,17 @@ export default function Barcodes() {
                 <div className="company-group-actions" onClick={(e) => e.stopPropagation()}>
                   {company.has_agent && !company.signed_today && (
                     <button
-                      className="btn btn-success btn-sm"
+                      className="btn btn-agent-sign btn-sm"
                       onClick={() => handleAgentSigned(company)}
                     >
                       <UserCheck size={16} />
-                      הוחתם
+                      החתם סוכן
                     </button>
                   )}
                   {company.has_agent && company.signed_today && (
-                    <span className="badge badge-success" style={{ padding: '8px 12px' }}>
-                      <UserCheck size={14} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
-                      הוחתם
+                    <span className="agent-signed-badge">
+                      <UserCheck size={16} />
+                      הוחתם ✓
                     </span>
                   )}
                   <button
